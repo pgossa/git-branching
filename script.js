@@ -1,6 +1,8 @@
 // Global variables to hold the Gitgraph state and command history.
 let gitgraph, branches, currentBranch;
 let actions = []; // Array to store commands for replaying
+let commandHistory = []; // Stores executed commands for navigation
+let historyIndex = -1; // Tracks the current position in command history
 
 const graphContainer = document.getElementById("graph-container");
 const terminalInput = document.getElementById("terminal-input");
@@ -51,7 +53,7 @@ function rebuildGraph() {
   });
 }
 
-// Utility: append a new line to terminal history
+// Utility: append a new line to terminal history display
 function addHistoryLine(text) {
   const commandLine = document.createElement("div");
   commandLine.classList.add("command-line");
@@ -68,6 +70,10 @@ function trimQuotes(str) {
 // Command parser and executor
 function executeCommand(commandText) {
   addHistoryLine(commandText);
+
+  // Add command to history and reset navigation index.
+  commandHistory.push(commandText);
+  historyIndex = commandHistory.length;
 
   // Simple split of command by spaces, keeping quoted text intact.
   const parts = commandText.match(/(?:[^\s"]+|"[^"]*")+/g);
@@ -182,14 +188,37 @@ function getCurrentBranchName() {
   return "unknown";
 }
 
-// Listen for "Enter" key on the terminal input box.
+// Listen for keydown events on the terminal input box.
 terminalInput.addEventListener("keydown", function(event) {
+  // On Enter, execute the command.
   if (event.key === "Enter") {
     const command = terminalInput.value.trim();
     if (command !== "") {
       executeCommand(command);
     }
     terminalInput.value = ""; // Clear the input after processing
+    event.preventDefault();
+  }
+  // Handle command history navigation.
+  else if (event.key === "ArrowUp") {
+    // If there is a previous command, set the input to that command.
+    if (historyIndex > 0) {
+      historyIndex--;
+      terminalInput.value = commandHistory[historyIndex];
+    }
+    event.preventDefault();
+  }
+  else if (event.key === "ArrowDown") {
+    // Move forward in the history if possible.
+    if (historyIndex < commandHistory.length - 1) {
+      historyIndex++;
+      terminalInput.value = commandHistory[historyIndex];
+    } else {
+      // If at the end, clear the input.
+      historyIndex = commandHistory.length;
+      terminalInput.value = "";
+    }
+    event.preventDefault();
   }
 });
 
