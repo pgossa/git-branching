@@ -1,0 +1,48 @@
+/* Basic reset and monospace font for terminal feel */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: monospace;
+}
+/* Flex container to create two panels */
+#container {
+  display: flex;
+  height: 100%;
+}
+/* Graph panel styles */
+#graph-panel {
+  flex: 2;
+  background-color: #f0f0f0;
+  padding: 10px;
+}
+/* Terminal panel styles */
+#terminal-panel {
+  flex: 1;
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+/* Terminal history output */
+#terminal-history {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+/* Terminal input styles */
+#terminal-input {
+  width: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+  background-color: #333;
+  color: #d4d4d4;
+  border: none;
+}
+/* Optional: styling for terminal command lines */
+.command-line {
+  margin: 0;
+  padding: 2px 0;
+}
