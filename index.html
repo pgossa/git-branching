@@ -1,21 +1,24 @@
-<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
   <title>Git Branching Visualization</title>
-  <!-- Load GitgraphJS -->
   <script src="https://cdn.jsdelivr.net/npm/@gitgraph/js"></script>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div id="container">
-    <!-- Panel for Git Graph -->
     <div id="graph-panel">
       <div id="graph-container"></div>
     </div>
-
-    <!-- Panel for Terminal (command input and history) -->
     <div id="terminal-panel">
+      <div id="settings-bar">
+        <label for="orientation-select">Graph Orientation:</label>
+        <select id="orientation-select">
+          <option value="horizontal" selected>Horizontal</option>
+          <option value="vertical">Vertical</option>
+        </select>
+        <button id="rerender-btn">Re-render Graph</button>
+      </div>
       <div id="terminal-history"></div>
       <input type="text" id="terminal-input" placeholder="Enter git command..." />
     </div>
