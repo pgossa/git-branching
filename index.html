@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Git Branching Visualization</title>
+  <!-- Load GitgraphJS -->
+  <script src="https://cdn.jsdelivr.net/npm/@gitgraph/js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="container">
+    <!-- Panel for Git Graph -->
+    <div id="graph-panel">
+      <div id="graph-container"></div>
+    </div>
+
+    <!-- Panel for Terminal (command input and history) -->
+    <div id="terminal-panel">
+      <div id="terminal-history"></div>
+      <input type="text" id="terminal-input" placeholder="Enter git command..." />
+    </div>
+  </div>
+  <script src="script.js"></script> 
+</body>
+</html>
