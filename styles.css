@@ -46,3 +46,26 @@ html, body {
   margin: 0;
   padding: 2px 0;
 }
+#settings-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #333;
+  padding: 10px;
+  border-radius: 5px;
+}
+#orientation-select {
+  padding: 5px;
+  background-color: #555;
+  color: white;
+  border: 1px solid #777;
+  border-radius: 3px;
+}
+#rerender-btn {
+  padding: 5px 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 3px;
+}

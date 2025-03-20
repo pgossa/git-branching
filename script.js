@@ -1,20 +1,24 @@
-// Global variables to hold the Gitgraph state and command history.
+// Global variables for GitgraphJS state, action history, and settings.
 let gitgraph, branches, currentBranch;
 let actions = []; // Array to store commands for replaying
+let graphSettings = { orientation: 'horizontal' }; // Graph settings
 let commandHistory = []; // Stores executed commands for navigation
 let historyIndex = -1; // Tracks the current position in command history
+
 
 const graphContainer = document.getElementById("graph-container");
 const terminalInput = document.getElementById("terminal-input");
 const terminalHistory = document.getElementById("terminal-history");
+const rerenderBtn = document.getElementById("rerender-btn");
+const orientationSelect = document.getElementById("orientation-select");
 
-// Initialize the Gitgraph with the default master branch.
+// Initialize the Gitgraph with the current orientation.
 function initGraph() {
   // Clear the container and reinitialize the graph.
   graphContainer.innerHTML = "";
-  gitgraph = GitgraphJS.createGitgraph(graphContainer);
+  gitgraph = GitgraphJS.createGitgraph(graphContainer, { orientation: graphSettings.orientation });
   branches = {};
-  // Create the default master branch and initial commit.
+  // Create the default master branch with an initial commit.
   branches.master = gitgraph.branch("master");
   branches.master.commit("Initial commit");
   currentBranch = branches.master;
@@ -23,14 +27,13 @@ function initGraph() {
 // Rebuild the graph from scratch by replaying the recorded actions.
 function rebuildGraph() {
   initGraph();
-  // Replay each action in order.
+  // Replay each recorded action to rebuild the current state.
   actions.forEach(action => {
     switch (action.cmd) {
       case "commit":
         currentBranch.commit(action.message);
         break;
       case "branch":
-        // Create a new branch from the current branch.
         branches[action.branchName] = currentBranch.branch(action.branchName);
         break;
       case "checkout":
@@ -53,7 +56,7 @@ function rebuildGraph() {
   });
 }
 
-// Utility: append a new line to terminal history display
+// Utility: Append a new line to the terminal history.
 function addHistoryLine(text) {
   const commandLine = document.createElement("div");
   commandLine.classList.add("command-line");
@@ -62,20 +65,16 @@ function addHistoryLine(text) {
   terminalHistory.scrollTop = terminalHistory.scrollHeight;
 }
 
-// Utility: trim quotes from around a string if present
+// Utility: Trim quotes from around a string if present.
 function trimQuotes(str) {
   return str.replace(/^['"]|['"]$/g, "");
 }
 
-// Command parser and executor
+// Command parser and executor.
 function executeCommand(commandText) {
   addHistoryLine(commandText);
 
-  // Add command to history and reset navigation index.
-  commandHistory.push(commandText);
-  historyIndex = commandHistory.length;
-
-  // Simple split of command by spaces, keeping quoted text intact.
+  // Simple split of command by spaces while respecting quoted text.
   const parts = commandText.match(/(?:[^\s"]+|"[^"]*")+/g);
   if (!parts || parts.length === 0) {
     return;
@@ -83,17 +82,14 @@ function executeCommand(commandText) {
 
   const command = parts[0].toLowerCase();
 
-  // Handle commands that modify the state.
   switch (command) {
     case "commit":
       if (parts.length < 2) {
         addHistoryLine("Error: commit message required.");
         return;
       }
-      // Join remaining parts for commit message and trim quotes.
       const commitMessage = trimQuotes(parts.slice(1).join(" "));
       currentBranch.commit(commitMessage);
-      // Record the command.
       actions.push({ cmd: "commit", message: commitMessage });
       addHistoryLine(`Committed on ${getCurrentBranchName()}: "${commitMessage}"`);
       break;
@@ -158,7 +154,6 @@ function executeCommand(commandText) {
       if (actions.length === 0) {
         addHistoryLine("Nothing to undo.");
       } else {
-        // Remove the last action and rebuild the graph.
         const removed = actions.pop();
         rebuildGraph();
         addHistoryLine(`Undid last command: ${removed.cmd}`);
@@ -166,7 +161,6 @@ function executeCommand(commandText) {
       break;
 
     case "reset":
-      // Clear all actions and rebuild to initial state.
       actions = [];
       rebuildGraph();
       addHistoryLine("Graph reset to initial state.");
@@ -178,7 +172,7 @@ function executeCommand(commandText) {
   }
 }
 
-// Helper: get current branch name by searching in branches.
+// Helper: Get the current branch name.
 function getCurrentBranchName() {
   for (const name in branches) {
     if (branches[name] === currentBranch) {
@@ -190,7 +184,6 @@ function getCurrentBranchName() {
 
 // Listen for keydown events on the terminal input box.
 terminalInput.addEventListener("keydown", function(event) {
-  // On Enter, execute the command.
   if (event.key === "Enter") {
     const command = terminalInput.value.trim();
     if (command !== "") {
@@ -216,10 +209,23 @@ terminalInput.addEventListener("keydown", function(event) {
     } else {
       // If at the end, clear the input.
       historyIndex = commandHistory.length;
-      terminalInput.value = "";
+    terminalInput.value = "";
     }
     event.preventDefault();
   }
+});
+
+// Listen for clicks on the "Re-render Graph" button.
+rerenderBtn.addEventListener("click", function() {
+  rebuildGraph();
+  addHistoryLine("Graph re-rendered.");
+});
+
+// Listen for changes in the orientation select control.
+orientationSelect.addEventListener("change", function() {
+  graphSettings.orientation = orientationSelect.value;
+  rebuildGraph();
+  addHistoryLine(`Graph orientation set to "${graphSettings.orientation}".`);
 });
 
 // Initialize the graph on page load.
