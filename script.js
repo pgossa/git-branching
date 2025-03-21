@@ -75,12 +75,14 @@ function executeCommand(commandText) {
   addHistoryLine(commandText);
 
   // Simple split of command by spaces while respecting quoted text.
-  const parts = commandText.match(/(?:[^\s"]+|"[^"]*")+/g);
+  // Handle 'git' prefix and extract actual command
+  let processedCommand = commandText.toLowerCase().replace(/^git /, '');
+  const parts = processedCommand.match(/(?:[^\s"]+|"[^"]*")+/g);
   if (!parts || parts.length === 0) {
     return;
   }
 
-  const command = parts[0].toLowerCase();
+  const command = parts[0];
 
   switch (command) {
     case "commit":
