@@ -37,6 +37,7 @@ function rebuildGraph() {
         branches[action.branchName] = currentBranch.branch(action.branchName);
         break;
       case "checkout":
+      case "switch":
         if (branches[action.branchName]) {
           currentBranch = branches[action.branchName];
         }
@@ -44,6 +45,13 @@ function rebuildGraph() {
       case "merge":
         if (branches[action.branchName]) {
           currentBranch.merge(branches[action.branchName]);
+        }
+        break;
+      case "rebase":
+        if (branches[action.branchName]) {
+          // For visualization, rebase is similar to replaying commits
+          // Note: In a real implementation, this would be more complex
+          currentBranch.rebase(branches[action.branchName]);
         }
         break;
       case "tag":
@@ -65,14 +73,45 @@ function addHistoryLine(text) {
   terminalHistory.scrollTop = terminalHistory.scrollHeight;
 }
 
-// Utility: Trim quotes from around a string if present.
-function trimQuotes(str) {
-  return str.replace(/^['"]|['"]$/g, "");
+// Utility: Generate a random commit message
+function generateRandomCommitMessage() {
+  const prefixes = [
+    "Update", "Fix", "Refactor", "Add", "Remove", "Optimize", 
+    "Improve", "Implement", "Revise", "Clean up"
+  ];
+  
+  const subjects = [
+    "code", "documentation", "tests", "configuration", "function", 
+    "module", "feature", "bug", "issue", "UI", "API", "settings",
+    "performance", "validation", "error handling", "dependencies"
+  ];
+  
+  const details = [
+    "for better readability", "to fix regression", "based on feedback",
+    "for consistency", "to prevent errors", "to improve performance",
+    "for clarity", "with better approach", "with unit tests",
+    "to meet requirements", "with proper validation"
+  ];
+  
+  const randomPrefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+  const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
+  
+  // 50% chance to add a detail for more variety
+  if (Math.random() > 0.5) {
+    const randomDetail = details[Math.floor(Math.random() * details.length)];
+    return `${randomPrefix} ${randomSubject} ${randomDetail}`;
+  }
+  
+  return `${randomPrefix} ${randomSubject}`;
 }
 
 // Command parser and executor.
 function executeCommand(commandText) {
   addHistoryLine(commandText);
+  
+  // Add command to history for up/down arrow navigation
+  commandHistory.push(commandText);
+  historyIndex = commandHistory.length;
 
   // Simple split of command by spaces while respecting quoted text.
   // Handle 'git' prefix and extract actual command
@@ -86,11 +125,16 @@ function executeCommand(commandText) {
 
   switch (command) {
     case "commit":
+      let commitMessage;
+      
       if (parts.length < 2) {
-        addHistoryLine("Error: commit message required.");
-        return;
+        // Generate a random commit message if none is provided
+        commitMessage = generateRandomCommitMessage();
+        addHistoryLine(`No commit message provided. Using random message.`);
+      } else {
+        commitMessage = trimQuotes(parts.slice(1).join(" "));
       }
-      const commitMessage = trimQuotes(parts.slice(1).join(" "));
+      
       currentBranch.commit(commitMessage);
       actions.push({ cmd: "commit", message: commitMessage });
       addHistoryLine(`Committed on ${getCurrentBranchName()}: "${commitMessage}"`);
@@ -112,17 +156,44 @@ function executeCommand(commandText) {
       break;
 
     case "checkout":
+    case "switch":
       if (parts.length < 2) {
-        addHistoryLine("Error: branch name required for checkout.");
+        addHistoryLine(`Error: branch name required for ${command}.`);
         return;
       }
+      
+      // Check for -b or -c flag to create and switch to a new branch
+      if ((command === "checkout" && parts[1] === "-b") || 
+          (command === "switch" && parts[1] === "-c")) {
+        if (parts.length < 3) {
+          addHistoryLine(`Error: branch name required for ${command} ${parts[1]}.`);
+          return;
+        }
+        const newBranchName = parts[2];
+        if (branches[newBranchName]) {
+          addHistoryLine(`Error: branch "${newBranchName}" already exists.`);
+          return;
+        }
+        // Create the branch
+        branches[newBranchName] = currentBranch.branch(newBranchName);
+        actions.push({ cmd: "branch", branchName: newBranchName });
+        
+        // Switch to the new branch
+        currentBranch = branches[newBranchName];
+        actions.push({ cmd: command, branchName: newBranchName });
+        
+        addHistoryLine(`Created and switched to branch "${newBranchName}".`);
+        return;
+      }
+      
+      // Regular checkout/switch behavior
       const checkoutBranch = parts[1];
       if (!branches[checkoutBranch]) {
         addHistoryLine(`Error: branch "${checkoutBranch}" does not exist.`);
         return;
       }
       currentBranch = branches[checkoutBranch];
-      actions.push({ cmd: "checkout", branchName: checkoutBranch });
+      actions.push({ cmd: command, branchName: checkoutBranch });
       addHistoryLine(`Switched to branch "${checkoutBranch}".`);
       break;
 
@@ -141,6 +212,32 @@ function executeCommand(commandText) {
       addHistoryLine(`Merged branch "${mergeBranchName}" into ${getCurrentBranchName()}.`);
       break;
 
+    case "rebase":
+      if (parts.length < 2) {
+        addHistoryLine("Error: branch name required for rebase.");
+        return;
+      }
+      const rebaseBranchName = parts[1];
+      if (!branches[rebaseBranchName]) {
+        addHistoryLine(`Error: branch "${rebaseBranchName}" does not exist.`);
+        return;
+      }
+      
+      // Check if trying to rebase onto the current branch
+      if (getCurrentBranchName() === rebaseBranchName) {
+        addHistoryLine(`Error: Cannot rebase a branch onto itself.`);
+        return;
+      }
+      
+      try {
+        // GitGraph.js rebase implementation
+        currentBranch.rebase(branches[rebaseBranchName]);
+        actions.push({ cmd: "rebase", branchName: rebaseBranchName });
+        addHistoryLine(`Rebased ${getCurrentBranchName()} onto "${rebaseBranchName}".`);
+      } catch (e) {
+        addHistoryLine(`Rebase failed: ${e.message || 'Unknown error'}`);
+      }
+      break;
     case "tag":
       if (parts.length < 2) {
         addHistoryLine("Error: tag name required.");
