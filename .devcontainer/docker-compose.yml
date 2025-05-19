@@ -1,0 +1,11 @@
+version: '3'
+services:
+  git-branching:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      - ..:/workspace:cached
+    ports:
+      - "8080:80"
+    command: ["sleep", "infinity"]
